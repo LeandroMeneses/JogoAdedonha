@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adedonha!</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div id="login-area">
+            <h2>Bem-vindo ao Adedonha Multiplayer!</h2>
+            <input type="text" id="playerNameInput" placeholder="Digite seu nome">
+            <button id="joinGameButton">Entrar no Jogo</button>
+        </div>
+
+        <div id="game-area" class="hidden">
+            <h1>Adedonha!</h1>
+
+        <div class="game-info">
+            <div class="info-item">
+                <h2>Letra:</h2>
+                <div id="current-letter" class="display-box">?</div>
+            </div>
+            <div class="info-item">
+                <h2>Tempo:</h2>
+                <div id="timer" class="display-box">00:60</div>
+            </div>
+            <div class="info-item">
+                <h2>Pontos:</h2>
+                <div id="score" class="display-box">0</div>
+            </div>
+        </div>
+
+        <div class="game-setup">
+            <div class="time-selector">
+                <label for="timeOptions">Tempo de Rodada:</label>
+                <select id="timeOptions">
+                    <option value="180" selected>180s</option>
+                    <option value="150">150s</option>
+                    <option value="120">120s</option>
+                    <option value="90">90s</option>
+                    <option value="60">60s</option>
+                </select>
+            </div>
+        </div>
+        <div class="categories">
+            <h2>Categorias</h2>
+            <div class="category-grid">
+                <div class="category-row">
+                    <label for="nome">Nome:</label>
+                    <input type="text" id="nome" data-category="nome" disabled autocomplete="off">
+                </div>
+                <div class="category-row">
+                    <label for="animal">Animal:</label>
+                    <input type="text" id="animal" data-category="animal" disabled autocomplete="off">
+                </div>
+                <div class="category-row">
+                    <label for="cidade">Cidade:</label>
+                    <input type="text" id="cidade" data-category="cidade" disabled autocomplete="off">
+                </div>
+                <div class="category-row">
+                    <label for="objeto">Objeto:</label>
+                    <input type="text" id="objeto" data-category="objeto" disabled autocomplete="off">
+                </div>
+                <div class="category-row">
+                    <label for="fruta">Fruta:</label>
+                    <input type="text" id="fruta" data-category="fruta" disabled autocomplete="off">
+                </div>
+                <div class="category-row">
+                    <label for="cor">Cor:</label>
+                    <input type="text" id="cor" data-category="cor" disabled autocomplete="off">
+                </div>
+                <div class="category-row">
+                    <label for="profissao">Profissão:</label>
+                    <input type="text" id="profissao" data-category="profissao" disabled autocomplete="off">
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="startButton">Iniciar Jogo</button>
+            <button id="stopButton" disabled>Parar Rodada</button>
+            <button id="restartButton" class="danger">Reiniciar Jogo</button>
+        </div>
+
+        <div class="players-list">
+            <h2>Jogadores na Sala</h2>
+            <ul id="players"></ul>
+        </div>
+        </div>
+    </div>
+
+    <!-- Tela de Resultados (Modal) -->
+    <div id="results-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Resultados da Rodada</h2>
+            <div id="results-table-container">
+                <!-- A tabela de resultados será inserida aqui pelo JavaScript -->
+            </div>
+            <!-- <p>Pontuação total atualizada na lista de jogadores.</p> -->
+            <button id="close-results-button">Próxima Rodada</button>
+        </div>
+    </div>
+
+    <!-- Importa a biblioteca do Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
