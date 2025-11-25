@@ -189,6 +189,15 @@ h1 {
     background-color: #f57c00; /* Laranja mais escuro */
 }
 
+/* Estilo para o botão de finalizar jogo */
+#endGameButton {
+    background-color: #4CAF50; /* Verde claro */
+}
+
+#endGameButton:hover {
+    background-color: #45a049; /* Verde um pouco mais escuro */
+}
+
 /* Estilos para a área de Login e Multiplayer */
 .hidden {
     display: none !important;
@@ -366,4 +375,28 @@ h1 {
 
 #results-table-container::-webkit-scrollbar-thumb:hover {
     background: #aaa;
+}
+
+/* Estilos para o Modal de Ranking Final */
+#final-ranking-container {
+    margin: 20px 0;
+    text-align: left;
+}
+
+/* Reutiliza o estilo do botão de fechar do outro modal */
+#close-ranking-button {
+    background: linear-gradient(45deg, #ff6b6b, #f06595);
+    border: none;
+    color: white;
+    font-size: 1.2em;
+    font-weight: bold;
+    padding: 15px 30px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#close-ranking-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }

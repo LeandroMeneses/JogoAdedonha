@@ -82,6 +82,7 @@
         <div class="controls">
             <button id="startButton">Iniciar Jogo</button>
             <button id="stopButton" disabled>Parar Rodada</button>
+            <button id="endGameButton">Finalizar Jogo</button>
             <button id="restartButton" class="danger">Reiniciar Jogo</button>
         </div>
 
@@ -101,6 +102,17 @@
             </div>
             <!-- <p>Pontuação total atualizada na lista de jogadores.</p> -->
             <button id="close-results-button">Próxima Rodada</button>
+        </div>
+    </div>
+
+    <!-- Tela de Ranking Final (Modal) -->
+    <div id="final-ranking-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Pontuação Final - Ranking</h2>
+            <div id="final-ranking-container">
+                <!-- A lista de ranking será inserida aqui pelo JavaScript -->
+            </div>
+            <button id="close-ranking-button">Fechar</button>
         </div>
     </div>
 
