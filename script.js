@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginArea = document.getElementById('login-area');
     const gameArea = document.getElementById('game-area');
     const playerNameInput = document.getElementById('playerNameInput');
-    const roomNameInput = document.getElementById('roomNameInput'); // Adicionado
+    const roomNameInput = document.getElementById('roomNameInput');
     const joinGameButton = document.getElementById('joinGameButton');
 
     const resultsModal = document.getElementById('results-modal');

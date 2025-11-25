@@ -324,6 +324,13 @@ h1 {
     background-color: #fff3cd; /* Amarelo claro para respostas repetidas */
 }
 
+.results-table .invalidated-answer {
+    background-color: #fbe9e7; /* Vermelho bem claro, para consistência com os inputs inválidos */
+    text-decoration: line-through; /* Risca o texto */
+    color: #999; /* Deixa o texto um pouco mais claro para indicar que não vale mais */
+}
+
+
 /* Estilo para o botão de fechar resultados, igual ao de entrar no jogo */
 #close-results-button {
     background: linear-gradient(45deg, #66a6ff, #89f7fe);

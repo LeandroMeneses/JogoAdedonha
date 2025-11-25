@@ -86,7 +86,7 @@ function calculateScores(roomId) {
     players.forEach(player => {
         // Pega as respostas do jogador. Se não houver, usa um objeto vazio.
         const playerAnswers = gameState.answers[player.id] || {};
-        const playerResult = { name: player.name, answers: {}, totalRoundScore: 0 };
+        const playerResult = { id: player.id, name: player.name, answers: {}, totalRoundScore: 0 };
 
         // Verifica palavras duplicadas para ESTE jogador
         const usedWordsByPlayer = new Set();
