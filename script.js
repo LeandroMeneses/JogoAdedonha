@@ -73,11 +73,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Validação da letra inicial
-            if (value !== '' && !value.startsWith(currentLetter)) {
+            // Primeiro, removemos o estado de inválido para revalidar
+            input.classList.remove('invalid-word');
+            if (value !== '' && !value.startsWith(currentLetter)) { // Se a palavra não estiver vazia e não começar com a letra certa
                 allWordsAreCorrect = false;
                 input.classList.add('invalid-word');
-            } else {
-                input.classList.remove('invalid-word');
             }
         });
         
