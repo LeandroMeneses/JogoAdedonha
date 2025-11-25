@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Conecta ao servidor. Em um ambiente real, use 'http://seu-servidor.com'
-    const socket = io();
+    const socket = io('https://jogoadedonha.onrender.com/');
 
     // --- Elementos do DOM ---
     const loginArea = document.getElementById('login-area');
