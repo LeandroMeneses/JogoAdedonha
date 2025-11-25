@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('updatePlayerList', (players) => {
         playersList.innerHTML = '';
         players.forEach(player => {
-            const li = document.createElement('li');
+            const li = document.createElement('li'); li.dataset.playerId = player.id; // Armazena o ID para referência futura
             if (player.id === socket.id) isCurrentUserHost = player.isHost;
             // Adiciona uma tag de "Líder" para o primeiro jogador
             li.innerHTML = `${player.name} - ${player.score} pontos ${player.isHost ? '<strong>(Líder)</strong>' : ''}`;
@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                  // Adiciona o botão de invalidar apenas se o jogador for o líder e a resposta for válida
                  const invalidateButton = (isCurrentUserHost && res.points > 0 && res.answer)
-                     ? `<span class="invalidate-btn" data-player-name="${player.name}" data-category="${cat}">❌</span>`
+                     ? `<span class="invalidate-btn" data-player-id="${player.id}" data-category="${cat}">❌</span>`
                      : '';
  
                  bodyHtml += `<td ${cellClass}>${res.answer} <span class="points">(${res.points})</span> ${invalidateButton}</td>`;
@@ -244,9 +244,9 @@ document.addEventListener('DOMContentLoaded', () => {
          // Adiciona os event listeners para os novos botões de invalidar
          document.querySelectorAll('.invalidate-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const targetPlayerName = e.target.dataset.playerName;
+                const targetPlayerId = e.target.dataset.playerId;
                 const category = e.target.dataset.category;
-                socket.emit('invalidateWord', { targetPlayerName, category });
+                socket.emit('invalidateWord', { targetPlayerId, category });
             });
          });
     }

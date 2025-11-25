@@ -167,16 +167,16 @@ io.on('connection', (socket) => {
     });
 
     // O líder da sala invalida uma palavra de um jogador
-    socket.on('invalidateWord', ({ targetPlayerName, category }) => {
+    socket.on('invalidateWord', ({ targetPlayerId, category }) => {
         const requestingPlayer = players.find(p => p.id === socket.id);
 
         // Apenas o líder pode invalidar e apenas se houver resultados para a rodada
-        if (!requestingPlayer || !requestingPlayer.isHost || !gameState.currentRoundResults) {
+        if (!requestingPlayer || !requestingPlayer.isHost || !gameState.currentRoundResults || !targetPlayerId) {
             return;
         }
 
-        const playerResult = gameState.currentRoundResults.playerResults.find(pr => pr.name === targetPlayerName);
-        const targetPlayer = players.find(p => p.name === targetPlayerName);
+        const targetPlayer = players.find(p => p.id === targetPlayerId);
+        const playerResult = targetPlayer ? gameState.currentRoundResults.playerResults.find(pr => pr.name === targetPlayer.name) : null;
 
         if (playerResult && targetPlayer) {
             const wordData = playerResult.answers[category];
