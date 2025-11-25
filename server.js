@@ -1,37 +1,53 @@
 // --- server.js ---
 // Para rodar, você precisa ter o express e socket.io instalados:
 // npm install express socket.io
+require('dotenv').config(); // Carrega as variáveis do arquivo .env
 
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
+const { create } = require('domain');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = socketIo(server, {
+    cors: {
+        origin: "https://jogoadedonha.onrender.com/", // Em produção, restrinja para a URL do seu cliente
+        methods: ["GET", "POST"]
+    }
+});
 
 // Serve os arquivos estáticos (html, css, js do cliente) da pasta atual
 app.use(express.static(path.join(__dirname)));
 
 // --- Lógica do Jogo no Servidor ---
-let players = [];
-let gameState = {
-    letter: '',
-    timer: 60,
-    isRoundActive: false,
-    timerInterval: null,
-    answers: {}, // Armazena as respostas de todos os jogadores
-    preferredTime: 60, // Tempo padrão inicial
-    currentRoundResults: null // Armazena os resultados da rodada atual para modificação
-};
+// Agora, em vez de um estado global, temos um Map para armazenar o estado de cada sala.
+const rooms = new Map();
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const CATEGORIES = ['nome', 'animal', 'cidade', 'objeto', 'fruta', 'cor', 'profissao'];
 
-function updatePlayerList() {
-    const playerInfo = players.map(p => ({ id: p.id, name: p.name, score: p.score }));
-    io.emit('updatePlayerList', playerInfo);
+function createNewRoomState() {
+    return {
+        players: [],
+        gameState: {
+            letter: '',
+            timer: 60,
+            isRoundActive: false,
+            timerInterval: null,
+            answers: {},
+            preferredTime: 60,
+            currentRoundResults: null
+        }
+    };
+}
+
+function updatePlayerList(roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    const playerInfo = room.players.map(p => ({ id: p.id, name: p.name, score: p.score, isHost: p.isHost }));
+    io.to(roomId).emit('updatePlayerList', playerInfo);
 }
 
 // Função auxiliar para remover acentos e converter para minúsculas
@@ -39,12 +55,16 @@ function normalizeString(str) {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
-function calculateScores() {
+function calculateScores(roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+
+    const { players, gameState } = room;
     const allAnswers = {}; // Ex: { nome: ['ANA', 'AMANDA'], animal: ['ARARA'] }
     CATEGORIES.forEach(cat => allAnswers[cat] = []);
 
     // Agrupa todas as respostas válidas por categoria
-    for (const playerId in gameState.answers) {
+    for (const playerId in room.gameState.answers) {
         const playerAnswers = gameState.answers[playerId];
         CATEGORIES.forEach(cat => {
             const rawAnswer = playerAnswers[cat] || '';
@@ -84,7 +104,7 @@ function calculateScores() {
         // Calcula os pontos para cada categoria
         CATEGORIES.forEach(cat => {
             const rawAnswer = playerAnswers[cat] || '';
-            const normalizedAnswer = normalizeString(rawAnswer);
+            const normalizedAnswer = normalizeString(rawAnswer); 
             const normalizedLetter = normalizeString(gameState.letter);
             let points = 0;
             if (normalizedAnswer && normalizedAnswer.startsWith(normalizedLetter) && !duplicateWordsByPlayer.has(normalizedAnswer)) {
@@ -102,41 +122,65 @@ function calculateScores() {
     });
 
     gameState.currentRoundResults = finalResults; // Armazena os resultados
-    io.emit('showResults', gameState.currentRoundResults); // Envia os resultados armazenados
+    io.to(roomId).emit('showResults', gameState.currentRoundResults); // Envia os resultados armazenados
 }
 
 
-function endRound() {
+function endRound(roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    const { gameState } = room;
+
     if (!gameState.isRoundActive) return;
 
-    console.log('A rodada terminou.');
+    console.log(`Rodada terminou para a sala: ${roomId}`);
     gameState.isRoundActive = false;
-    clearInterval(gameState.timerInterval);
+    if (gameState.timerInterval) clearInterval(gameState.timerInterval);
     
     // 1. Avisa a todos que a rodada acabou e pede as respostas.
-    io.emit('collectAnswers');
+    io.to(roomId).emit('collectAnswers');
 }
 
 
 io.on('connection', (socket) => {
     console.log(`Novo jogador conectado: ${socket.id}`);
 
-    socket.on('joinGame', ({ playerName }) => {
+    socket.on('joinGame', ({ playerName, roomName }) => {
         // SANITIZAÇÃO: Limita o tamanho e remove caracteres que podem ser usados em ataques XSS.
         const sanitizedName = playerName.trim().substring(0, 20).replace(/[<>]/g, '');
-        if (!sanitizedName) return; // Ignora nomes vazios após a sanitização.
+        const sanitizedRoomName = roomName.trim().substring(0, 20).replace(/[^a-zA-Z0-9-_]/g, '');
+        if (!sanitizedName || !sanitizedRoomName) return;
 
-        const isHost = players.length === 0; // O primeiro jogador a entrar é o host
-        players.push({ id: socket.id, name: sanitizedName, score: 0, isHost: isHost });
-        console.log(`${sanitizedName} entrou no jogo.`);
-        updatePlayerList();
+        // Cria a sala se ela não existir
+        if (!rooms.has(sanitizedRoomName)) {
+            rooms.set(sanitizedRoomName, createNewRoomState());
+            console.log(`Sala criada: ${sanitizedRoomName}`);
+        }
+
+        const room = rooms.get(sanitizedRoomName);
+
+        // Junta o socket à sala do socket.io
+        socket.join(sanitizedRoomName);
+        socket.roomId = sanitizedRoomName; // Armazena o ID da sala no socket para referência futura
+
+        const isHost = room.players.length === 0; // O primeiro jogador a entrar é o host
+        room.players.push({ id: socket.id, name: sanitizedName, score: 0, isHost: isHost });
+        console.log(`${sanitizedName} entrou na sala ${sanitizedRoomName}.`);
+        
+        updatePlayerList(sanitizedRoomName);
         // Envia o tempo preferido atual para o novo jogador
-        socket.emit('serverUpdateTimeOption', gameState.preferredTime);
+        socket.emit('serverUpdateTimeOption', room.gameState.preferredTime);
     });
 
-    socket.on('startGame', (data) => {
+    socket.on('startGame', () => {
+        const roomId = socket.roomId;
+        if (!roomId) return;
+        const room = rooms.get(roomId);
+        if (!room) return;
+        const { gameState } = room;
+
         if (gameState.isRoundActive) return;
-        console.log('Iniciando o jogo...');
+        console.log(`Iniciando o jogo na sala ${roomId}...`);
 
         // Usa o tempo preferido armazenado no gameState
         const roundTime = gameState.preferredTime;
@@ -145,33 +189,45 @@ io.on('connection', (socket) => {
         gameState.letter = alphabet[Math.floor(Math.random() * alphabet.length)];
         gameState.timer = roundTime;
         gameState.answers = {}; // Limpa respostas da rodada anterior
+        gameState.currentRoundResults = null;
 
-        io.emit('gameStarted', { letter: gameState.letter, startTime: roundTime });
+        io.to(roomId).emit('gameStarted', { letter: gameState.letter, startTime: roundTime });
 
         gameState.timerInterval = setInterval(() => {
             gameState.timer--;
-            io.emit('timerTick', { timeLeft: gameState.timer });
+            io.to(roomId).emit('timerTick', { timeLeft: gameState.timer });
             if (gameState.timer <= 0) {
-                endRound();
+                endRound(roomId);
             }
         }, 1000);
     });
     
     // O jogador clicou em STOP
     socket.on('stopRound', () => {
+        const roomId = socket.roomId;
+        if (!roomId) return;
+        const room = rooms.get(roomId);
+        if (!room) return;
+
         if (!gameState.isRoundActive) return;
 
-        const player = players.find(p => p.id === socket.id);
+        const player = room.players.find(p => p.id === socket.id);
         if (player) {
-            io.emit('serverMessage', `${player.name} gritou STOP!`);
+            io.to(roomId).emit('serverMessage', `${player.name} gritou STOP!`);
         }
         
         // Quando alguém aperta STOP, a rodada acaba para todos
-        endRound();
+        endRound(roomId);
     });
 
     // O líder da sala invalida uma palavra de um jogador
-    socket.on('invalidateWord', ({ targetPlayerName, category }) => {
+    socket.on('invalidateWord', ({ targetPlayerId, category }) => {
+        const roomId = socket.roomId;
+        if (!roomId) return;
+        const room = rooms.get(roomId);
+        if (!room) return;
+        const { players, gameState } = room;
+
         const requestingPlayer = players.find(p => p.id === socket.id);
 
         // Apenas o líder pode invalidar e apenas se houver resultados para a rodada
@@ -179,8 +235,8 @@ io.on('connection', (socket) => {
             return;
         }
 
-        const playerResult = gameState.currentRoundResults.playerResults.find(pr => pr.name === targetPlayerName);
-        const targetPlayer = players.find(p => p.name === targetPlayerName);
+        const targetPlayer = players.find(p => p.id === targetPlayerId);
+        const playerResult = targetPlayer ? gameState.currentRoundResults.playerResults.find(pr => pr.name === targetPlayer.name) : null;
 
         if (playerResult && targetPlayer) {
             const wordData = playerResult.answers[category];
@@ -200,47 +256,81 @@ io.on('connection', (socket) => {
                 wordData.invalidated = true; // Adicionamos um marcador
 
                 // Envia os resultados atualizados para todos os clientes
-                io.emit('resultsUpdated', gameState.currentRoundResults);
-                updatePlayerList(); // Atualiza a lista de jogadores com a nova pontuação total
+                io.to(roomId).emit('resultsUpdated', gameState.currentRoundResults);
+                updatePlayerList(roomId); // Atualiza a lista de jogadores com a nova pontuação total
             }
         }
     });
     // O cliente está enviando suas respostas após a coleta ser solicitada
     socket.on('submitAnswers', ({ answers }) => {
+        const roomId = socket.roomId;
+        if (!roomId) return;
+        const room = rooms.get(roomId);
+        if (!room) return;
+        const { players, gameState } = room;
+
         if (players.some(p => p.id === socket.id)) {
             gameState.answers[socket.id] = answers;
 
             // Verifica se todos os jogadores já enviaram suas respostas
             const answeredPlayers = Object.keys(gameState.answers).length;
             if (answeredPlayers >= players.length) {
-                calculateScores();
-                updatePlayerList();
+                calculateScores(roomId);
+                updatePlayerList(roomId);
             }
         }
     });
 
     // Um jogador mudou a opção de tempo
     socket.on('clientUpdateTimeOption', (newTime) => {
+        const roomId = socket.roomId;
+        if (!roomId) return;
+        const room = rooms.get(roomId);
+        if (!room) return;
+        const { gameState } = room;
+
         gameState.preferredTime = parseInt(newTime, 10) || 60;
         // Envia a nova opção de tempo para todos os outros clientes
-        socket.broadcast.emit('serverUpdateTimeOption', gameState.preferredTime);
+        socket.to(roomId).broadcast.emit('serverUpdateTimeOption', gameState.preferredTime);
     });
 
     socket.on('restartGame', () => {
-        console.log('Reiniciando o jogo para todos.');
+        const roomId = socket.roomId;
+        if (!roomId) return;
+        const room = rooms.get(roomId);
+        if (!room) return;
+        const { players, gameState } = room;
+
+        console.log(`Reiniciando o jogo para a sala ${roomId}.`);
         players.forEach(p => p.score = 0);
         gameState.currentRoundResults = null; // Limpa os resultados da rodada anterior
-        if (gameState.isRoundActive) endRound(); // Para a rodada atual se houver uma
-        io.emit('gameRestarted');
-        updatePlayerList();
+        if (gameState.isRoundActive) endRound(roomId); // Para a rodada atual se houver uma
+        io.to(roomId).emit('gameRestarted');
+        updatePlayerList(roomId);
     });
 
     socket.on('disconnect', () => {
-        const player = players.find(p => p.id === socket.id);
-        if (player) {
-            console.log(`${player.name} desconectou.`);
-            players = players.filter(p => p.id !== socket.id);
-            updatePlayerList();
+        const roomId = socket.roomId;
+        if (!roomId) return;
+        const room = rooms.get(roomId);
+        if (!room) return;
+
+        const playerIndex = room.players.findIndex(p => p.id === socket.id);
+        if (playerIndex !== -1) {
+            const player = room.players[playerIndex];
+            console.log(`${player.name} desconectou da sala ${roomId}.`);
+            room.players.splice(playerIndex, 1);
+
+            // Se a sala ficar vazia, podemos removê-la para liberar memória
+            if (room.players.length === 0) {
+                if (room.gameState.timerInterval) clearInterval(room.gameState.timerInterval);
+                rooms.delete(roomId);
+                console.log(`Sala ${roomId} removida por estar vazia.`);
+            } else {
+                // Se o host se desconectou, elege um novo host (o próximo da lista)
+                if (player.isHost) room.players[0].isHost = true;
+                updatePlayerList(roomId);
+            }
         }
     });
 });

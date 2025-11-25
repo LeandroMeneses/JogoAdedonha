@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginArea = document.getElementById('login-area');
     const gameArea = document.getElementById('game-area');
     const playerNameInput = document.getElementById('playerNameInput');
+    const roomNameInput = document.getElementById('roomNameInput'); // Adicionado
     const joinGameButton = document.getElementById('joinGameButton');
 
     const resultsModal = document.getElementById('results-modal');
@@ -81,12 +82,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Lógica de Login ---
     function attemptJoinGame() {
         const playerName = playerNameInput.value.trim();
-        if (playerName) {
-            socket.emit('joinGame', { playerName });
+        const roomName = roomNameInput.value.trim(); // Adicionado
+        if (playerName && roomName) {
+            socket.emit('joinGame', { playerName, roomName }); // Envia o nome da sala também
             loginArea.classList.add('hidden');
             gameArea.classList.remove('hidden');
         } else {
-            alert('Por favor, digite um nome.');
+            alert('Por favor, digite seu nome e o nome da sala.');
         }
     }
 
@@ -94,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     playerNameInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
-            attemptJoinGame();
+            roomNameInput.focus(); // Pula para o campo da sala
         }
     });
 
@@ -103,6 +105,12 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener('input', validateInputs);
     });
 
+    // Adicionado para entrar no jogo com Enter no campo da sala
+    roomNameInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            attemptJoinGame();
+        }
+    });
     // --- Eventos dos Botões (Envia para o Servidor) ---
     // O botão Iniciar Jogo não precisa mais enviar o tempo, pois o servidor já sabe o tempo preferido
     startButton.addEventListener('click', () => {
