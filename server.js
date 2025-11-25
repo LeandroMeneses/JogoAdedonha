@@ -122,9 +122,13 @@ io.on('connection', (socket) => {
     console.log(`Novo jogador conectado: ${socket.id}`);
 
     socket.on('joinGame', ({ playerName }) => {
+        // SANITIZAÇÃO: Limita o tamanho e remove caracteres que podem ser usados em ataques XSS.
+        const sanitizedName = playerName.trim().substring(0, 20).replace(/[<>]/g, '');
+        if (!sanitizedName) return; // Ignora nomes vazios após a sanitização.
+
         const isHost = players.length === 0; // O primeiro jogador a entrar é o host
-        players.push({ id: socket.id, name: playerName, score: 0, isHost: isHost });
-        console.log(`${playerName} entrou no jogo.`);
+        players.push({ id: socket.id, name: sanitizedName, score: 0, isHost: isHost });
+        console.log(`${sanitizedName} entrou no jogo.`);
         updatePlayerList();
         // Envia o tempo preferido atual para o novo jogador
         socket.emit('serverUpdateTimeOption', gameState.preferredTime);
@@ -167,16 +171,16 @@ io.on('connection', (socket) => {
     });
 
     // O líder da sala invalida uma palavra de um jogador
-    socket.on('invalidateWord', ({ targetPlayerId, category }) => {
+    socket.on('invalidateWord', ({ targetPlayerName, category }) => {
         const requestingPlayer = players.find(p => p.id === socket.id);
 
         // Apenas o líder pode invalidar e apenas se houver resultados para a rodada
-        if (!requestingPlayer || !requestingPlayer.isHost || !gameState.currentRoundResults || !targetPlayerId) {
+        if (!requestingPlayer || !requestingPlayer.isHost || !gameState.currentRoundResults) {
             return;
         }
 
-        const targetPlayer = players.find(p => p.id === targetPlayerId);
-        const playerResult = targetPlayer ? gameState.currentRoundResults.playerResults.find(pr => pr.name === targetPlayer.name) : null;
+        const playerResult = gameState.currentRoundResults.playerResults.find(pr => pr.name === targetPlayerName);
+        const targetPlayer = players.find(p => p.name === targetPlayerName);
 
         if (playerResult && targetPlayer) {
             const wordData = playerResult.answers[category];

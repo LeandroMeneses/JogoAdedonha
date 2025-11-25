@@ -8,7 +8,7 @@
     "start": "node server.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Leandro Meneses",
   "license": "ISC",
   "dependencies": {
     "express": "^4.19.2",
