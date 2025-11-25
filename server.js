@@ -1,6 +1,6 @@
 // --- server.js ---
 // Para rodar, você precisa ter o express e socket.io instalados:
-// npm install express socket.io
+// npm install express socket.io dotenv
 require('dotenv').config(); // Carrega as variáveis do arquivo .env
 
 const express = require('express');
@@ -13,7 +13,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-        origin: "https://jogoadedonha.onrender.com/", // Em produção, restrinja para a URL do seu cliente
+        origin: "*", // Permite qualquer origem. Idealmente, restrinja para a URL do seu cliente após o deploy.
         methods: ["GET", "POST"]
     }
 });
