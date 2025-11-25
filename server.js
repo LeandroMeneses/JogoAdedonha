@@ -309,6 +309,19 @@ io.on('connection', (socket) => {
         updatePlayerList(roomId);
     });
 
+    socket.on('endGame', () => {
+        const roomId = socket.roomId;
+        if (!roomId) return;
+        const room = rooms.get(roomId);
+        if (!room) return;
+
+        // Apenas coleta os dados dos jogadores (nome e pontuação)
+        const finalRanking = room.players.map(p => ({ name: p.name, score: p.score }));
+
+        // Envia o ranking para todos na sala
+        io.to(roomId).emit('showFinalRanking', finalRanking);
+    });
+
     socket.on('disconnect', () => {
         const roomId = socket.roomId;
         if (!roomId) return;

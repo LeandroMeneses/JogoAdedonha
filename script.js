@@ -10,6 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const joinGameButton = document.getElementById('joinGameButton');
 
     const resultsModal = document.getElementById('results-modal');
+    const finalRankingModal = document.getElementById('final-ranking-modal');
+    const finalRankingContainer = document.getElementById('final-ranking-container');
+    const closeRankingButton = document.getElementById('close-ranking-button');
+
     // Adicionamos uma variável para saber se o jogador atual é o líder
     let isCurrentUserHost = false;
 
@@ -21,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const timerDisplay = document.getElementById('timer');
     const startButton = document.getElementById('startButton');
     const stopButton = document.getElementById('stopButton');
+    const endGameButton = document.getElementById('endGameButton');
     const restartButton = document.getElementById('restartButton');
     const playersList = document.getElementById('players');
     const timeOptionsSelect = document.getElementById('timeOptions');
@@ -135,8 +140,17 @@ document.addEventListener('DOMContentLoaded', () => {
         socket.emit('restartGame');
     });
 
+    endGameButton.addEventListener('click', () => {
+        if (confirm('Tem certeza que deseja finalizar o jogo para todos? A pontuação final será exibida.')) {
+            socket.emit('endGame');
+        }
+    });
+
     closeResultsButton.addEventListener('click', () => {
         resultsModal.classList.add('hidden');
+    });
+    closeRankingButton.addEventListener('click', () => {
+        finalRankingModal.classList.add('hidden');
     });
 
     // --- Ouvindo Eventos do Servidor ---
@@ -210,6 +224,26 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('resultsUpdated', (data) => {
         renderResultsTable(data);
     });
+
+    // O servidor envia o ranking final
+    socket.on('showFinalRanking', (finalRanking) => {
+        // Ordena os jogadores pela pontuação, do maior para o menor
+        finalRanking.sort((a, b) => b.score - a.score);
+
+        finalRankingContainer.innerHTML = ''; // Limpa o conteúdo anterior
+        const ol = document.createElement('ol');
+
+        finalRanking.forEach((player, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `${index + 1}º - ${player.name} com <strong>${player.score}</strong> pontos`;
+            ol.appendChild(li);
+        });
+
+        finalRankingContainer.appendChild(ol);
+        resultsModal.classList.add('hidden'); // Esconde o modal de resultados da rodada, se estiver aberto
+        finalRankingModal.classList.remove('hidden'); // Mostra o modal de ranking final
+    });
+
 
     function renderResultsTable(data) {
          // Limpa a tabela anterior

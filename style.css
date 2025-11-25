@@ -339,6 +339,11 @@ h1 {
     color: #999; /* Deixa o texto um pouco mais claro para indicar que não vale mais */
 }
 
+.invalidate-btn {
+    cursor: pointer;
+    margin-left: 5px;
+}
+
 
 /* Estilo para o botão de fechar resultados, igual ao de entrar no jogo */
 #close-results-button {
